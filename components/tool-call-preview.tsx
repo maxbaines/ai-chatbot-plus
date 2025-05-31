@@ -162,7 +162,14 @@ export default function ToolCallPreview({ className, protocol = "MCP", protocolC
 
   if (type === "done" && result) {
     return (
-      <div className={cn("flex flex-col gap-3", className)}>
+      <div 
+        className={cn(
+          "cursor-pointer transition-all duration-200 hover:opacity-80",
+          isExpanded ? "flex flex-col gap-3" : "flex items-center gap-3",
+          className
+        )}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         {/* Header with Protocol Badge */}
         <div className="flex items-center gap-3">
           <div className={cn("inline-flex items-center px-2 py-1 rounded-md border text-xs font-mono font-medium")}>
@@ -171,18 +178,14 @@ export default function ToolCallPreview({ className, protocol = "MCP", protocolC
           <div className="text-xs text-muted-foreground font-mono">✓ Complete</div>
         </div>
 
-        {/* JSON Result Display */}
-        <div 
-          className={cn(
-            "cursor-pointer transition-all duration-200 hover:opacity-80",
-            "border rounded-md font-mono text-xs"
-          )}
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          <pre className="whitespace-pre-wrap overflow-hidden p-1 m-0">
-            {isExpanded ? formatFullJson(result) : formatJsonPreview(result)}
-          </pre>
-        </div>
+        {/* JSON Result Display - only show when expanded */}
+        {isExpanded && (
+          <div className={cn("border rounded-md font-mono text-xs")}>
+            <pre className="whitespace-pre-wrap overflow-hidden p-3 m-0 max-h-60 overflow-y-auto">
+              {formatFullJson(result)}
+            </pre>
+          </div>
+        )}
       </div>
     )
   }
