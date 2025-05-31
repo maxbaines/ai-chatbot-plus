@@ -24,7 +24,7 @@ export async function createAuthenticatedContext({
 }: {
   browser: Browser;
   name: string;
-  chatModel?: 'chat-model' | 'chat-model-reasoning';
+  chatModel?: 'chat-model' | 'xai-chat-model-reasoning';
 }): Promise<UserContext> {
   const directory = path.join(__dirname, '../playwright/.sessions');
 
@@ -53,7 +53,7 @@ export async function createAuthenticatedContext({
 
   const chatPage = new ChatPage(page);
   await chatPage.createNewChat();
-  await chatPage.chooseModelFromSelector('chat-model-reasoning');
+  await chatPage.chooseModelFromSelector('xai-chat-model-reasoning');
   await expect(chatPage.getSelectedModel()).resolves.toEqual('Reasoning model');
 
   await page.waitForTimeout(1000);

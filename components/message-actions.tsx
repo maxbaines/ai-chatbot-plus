@@ -34,7 +34,6 @@ export function PureMessageActions({
   if (message.role === 'user') return null;
 
   return (
-    <TooltipProvider delayDuration={0}>
       <div className="flex flex-row gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -169,7 +168,6 @@ export function PureMessageActions({
           <TooltipContent>Downvote Response</TooltipContent>
         </Tooltip>
       </div>
-    </TooltipProvider>
   );
 }
 

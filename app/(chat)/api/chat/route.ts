@@ -36,6 +36,8 @@ import { after } from 'next/server';
 import type { Chat } from '@/lib/db/schema';
 import { differenceInSeconds } from 'date-fns';
 import { ChatSDKError } from '@/lib/errors';
+import { cookies } from 'next/headers';
+import { initializeMCPClients } from '@/lib/ai/mcp/mcp-client';
 
 export const maxDuration = 60;
 
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { id, message, selectedChatModel, selectedVisibilityType } =
+    const { id, message, selectedChatModel, selectedVisibilityType, mcpServers } =
       requestBody;
 
     const session = await auth();
@@ -92,19 +94,33 @@ export async function POST(request: Request) {
       return new ChatSDKError('rate_limit:chat').toResponse();
     }
 
-    const chat = await getChatById({ id });
+    // Validate that the selected model is allowed for this user type
+    const { availableChatModelIds } = entitlementsByUserType[userType];
+    if (!availableChatModelIds.includes(selectedChatModel)) {
+      return new ChatSDKError('forbidden:chat').toResponse();
+    }
+
+    let chat = await getChatById({ id });
 
     if (!chat) {
       const title = await generateTitleFromUserMessage({
         message,
       });
 
+      // Read the selected prompt from cookie
+      const cookieStore = await cookies();
+      const selectedPromptFromCookie = cookieStore.get('selected-prompt');
+
       await saveChat({
         id,
         userId: session.user.id,
         title,
         visibility: selectedVisibilityType,
+        promptId: selectedPromptFromCookie?.value || null,
       });
+
+      // Get the newly created chat to access its promptId
+      chat = await getChatById({ id });
     } else {
       if (chat.userId !== session.user.id) {
         return new ChatSDKError('forbidden:chat').toResponse();
@@ -144,25 +160,31 @@ export async function POST(request: Request) {
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
+    // Initialize MCP clients using the already running persistent SSE servers
+    // mcpServers now only contains SSE configurations since stdio servers
+    // have been converted to SSE in the MCP context
+    const { tools, cleanup } = await initializeMCPClients(mcpServers, request.signal);
+    
     const stream = createDataStream({
-      execute: (dataStream) => {
+      execute: async (dataStream) => {
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: await systemPrompt({ selectedChatModel, requestHints, promptId: chat?.promptId }),
           messages,
           maxSteps: 5,
-          experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
+          /*experimental_activeTools:
+            selectedChatModel === 'xai-chat-model-reasoning'||   selectedChatModel === 'openai-chat-model-search'
               ? []
               : [
                   'getWeather',
                   'createDocument',
                   'updateDocument',
                   'requestSuggestions',
-                ],
+                ],*/
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: generateUUID,
           tools: {
+            ...tools,
             getWeather,
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
@@ -206,6 +228,10 @@ export async function POST(request: Request) {
                 console.error('Failed to save chat');
               }
             }
+
+            // Clean up resources - now this just closes the client connections
+            // not the actual servers which persist in the MCP context
+            await cleanup();
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
@@ -219,8 +245,10 @@ export async function POST(request: Request) {
           sendReasoning: true,
         });
       },
-      onError: () => {
-        return 'Oops, an error occurred!';
+      onError: (error) => {
+         // Error messages are masked by default for security reasons.
+        // If you want to expose the error message to the client, you can do so here:
+        return error instanceof Error ? error.message : String(error)
       },
     });
 

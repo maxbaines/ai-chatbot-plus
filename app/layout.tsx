@@ -2,14 +2,17 @@ import { Toaster } from 'sonner';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AppCommand } from '@/components/app-command';
 
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { MCPProvider } from '@/lib/ai/mcp/mcp-context';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://chat.vercel.ai'),
-  title: 'Next.js Chatbot Template',
-  description: 'Next.js chatbot template using the AI SDK.',
+  metadataBase: new URL('https://baa.chat'),
+  title: 'Chatbot+',
+  description: 'Chatbot+ the Next.js chatbot template using the AI SDK and Love.',
 };
 
 export const viewport = {
@@ -71,15 +74,24 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Toaster position="top-center" />
-          <SessionProvider>{children}</SessionProvider>
-        </ThemeProvider>
+        <TooltipProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <SessionProvider>
+              <MCPProvider>
+                <div className="min-h-screen bg-background">
+                  {children}
+                </div>
+                <AppCommand />
+                <Toaster position="top-center" />
+              </MCPProvider>
+            </SessionProvider>
+            </ThemeProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

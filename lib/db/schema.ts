@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  integer,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -26,6 +27,8 @@ export const chat = pgTable('Chat', {
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),
+  promptId: uuid('promptId').references(() => prompt.id),
+  modelId: varchar('modelId', { length: 255 }),
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
@@ -151,6 +154,27 @@ export const suggestion = pgTable(
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
 
+export const prompt = pgTable('Prompt', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  content: text('content').notNull(),
+  type: varchar('type', { enum: ['chat', 'code', 'name', 'custom'] })
+    .notNull()
+    .default('custom'),
+  isDefault: boolean('isDefault').notNull().default(false),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  usageCount: integer('usageCount').notNull().default(0),
+  isDeleted: boolean('isDeleted').notNull().default(false),
+  deletedAt: timestamp('deletedAt'),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+});
+
+export type Prompt = InferSelectModel<typeof prompt>;
+
 export const stream = pgTable(
   'Stream',
   {
@@ -168,3 +192,29 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const mcpServer = pgTable('MCPServer', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  url: text('url').notNull(),
+  type: varchar('type', { enum: ['sse', 'stdio'] }).notNull(),
+  command: text('command'),
+  args: json('args'),
+  env: json('env'),
+  headers: json('headers'),
+  status: varchar('status', { enum: ['connected', 'disconnected', 'connecting', 'error'] })
+    .notNull()
+    .default('disconnected'),
+  errorMessage: text('errorMessage'),
+  sandboxUrl: text('sandboxUrl'),
+  enabled: boolean('enabled').notNull().default(false),
+  streaming: boolean('streaming').notNull().default(false),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+});
+
+export type MCPServer = InferSelectModel<typeof mcpServer>;

@@ -4,6 +4,7 @@ import { Chat } from '@/components/chat';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import { generateUUID } from '@/lib/utils';
 import { DataStreamHandler } from '@/components/data-stream-handler';
+import { getPromptsAction } from '@/app/(prompt)/actions';
 import { auth } from '../(auth)/auth';
 import { redirect } from 'next/navigation';
 
@@ -16,8 +17,13 @@ export default async function Page() {
 
   const id = generateUUID();
 
+  // Load initial prompts on the server
+  const initialPromptsResult = await getPromptsAction();
+  const initialPrompts = initialPromptsResult.success ? initialPromptsResult.prompts : [];
+
   const cookieStore = await cookies();
   const modelIdFromCookie = cookieStore.get('chat-model');
+  const selectedPromptFromCookie = cookieStore.get('selected-prompt');
 
   if (!modelIdFromCookie) {
     return (
@@ -31,6 +37,8 @@ export default async function Page() {
           isReadonly={false}
           session={session}
           autoResume={false}
+          initialPrompts={initialPrompts}
+          selectedPromptId={selectedPromptFromCookie?.value}
         />
         <DataStreamHandler id={id} />
       </>
@@ -39,16 +47,18 @@ export default async function Page() {
 
   return (
     <>
-      <Chat
-        key={id}
-        id={id}
-        initialMessages={[]}
-        initialChatModel={modelIdFromCookie.value}
-        initialVisibilityType="private"
-        isReadonly={false}
-        session={session}
-        autoResume={false}
-      />
+        <Chat
+          key={id}
+          id={id}
+          initialMessages={[]}
+          initialChatModel={modelIdFromCookie.value}
+          initialVisibilityType="private"
+          isReadonly={false}
+          session={session}
+          autoResume={false}
+          initialPrompts={initialPrompts}
+          selectedPromptId={selectedPromptFromCookie?.value}
+        />
       <DataStreamHandler id={id} />
     </>
   );

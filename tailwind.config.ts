@@ -73,7 +73,15 @@ const config: Config = {
           ring: 'hsl(var(--sidebar-ring))',
         },
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            color: 'hsl(var(--foreground))',
+          },
+        },
+      },
     },
+    
   },
   plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
 };

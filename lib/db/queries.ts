@@ -9,7 +9,11 @@ import {
   gt,
   gte,
   inArray,
+  isNotNull,
   lt,
+  like,
+  or,
+  sql,
   type SQL,
 } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -27,6 +31,10 @@ import {
   type DBMessage,
   type Chat,
   stream,
+  prompt,
+  type Prompt,
+  mcpServer,
+  type MCPServer,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -57,7 +65,15 @@ export async function createUser(email: string, password: string) {
   const hashedPassword = generateHashedPassword(password);
 
   try {
-    return await db.insert(user).values({ email, password: hashedPassword });
+    const [newUser] = await db.insert(user).values({ email, password: hashedPassword }).returning({
+      id: user.id,
+      email: user.email,
+    });
+
+    // Seed default prompts for the new user
+    await seedDefaultPromptsForUser({ userId: newUser.id });
+
+    return [newUser];
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to create user');
   }
@@ -68,10 +84,15 @@ export async function createGuestUser() {
   const password = generateHashedPassword(generateUUID());
 
   try {
-    return await db.insert(user).values({ email, password }).returning({
+    const [newUser] = await db.insert(user).values({ email, password }).returning({
       id: user.id,
       email: user.email,
     });
+
+    // Seed default prompts for the new guest user
+    await seedDefaultPromptsForUser({ userId: newUser.id });
+
+    return [newUser];
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -85,11 +106,15 @@ export async function saveChat({
   userId,
   title,
   visibility,
+  promptId,
+  modelId,
 }: {
   id: string;
   userId: string;
   title: string;
   visibility: VisibilityType;
+  promptId?: string | null;
+  modelId?: string | null;
 }) {
   try {
     return await db.insert(chat).values({
@@ -98,6 +123,8 @@ export async function saveChat({
       userId,
       title,
       visibility,
+      promptId,
+      modelId,
     });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to save chat');
@@ -469,6 +496,40 @@ export async function updateChatVisiblityById({
   }
 }
 
+export async function updateChatPromptId({
+  chatId,
+  promptId,
+}: {
+  chatId: string;
+  promptId: string | null;
+}) {
+  try {
+    return await db.update(chat).set({ promptId }).where(eq(chat.id, chatId));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update chat prompt id',
+    );
+  }
+}
+
+export async function updateChatModelId({
+  chatId,
+  modelId,
+}: {
+  chatId: string;
+  modelId: string | null;
+}) {
+  try {
+    return await db.update(chat).set({ modelId }).where(eq(chat.id, chatId));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update chat model id',
+    );
+  }
+}
+
 export async function getMessageCountByUserId({
   id,
   differenceInHours,
@@ -533,6 +594,533 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get stream ids by chat id',
+    );
+  }
+}
+
+// Prompt CRUD operations
+
+export async function createPrompt({
+  name,
+  description,
+  content,
+  type,
+  isDefault = false,
+  userId,
+}: {
+  name: string;
+  description: string;
+  content: string;
+  type: 'chat' | 'code' | 'name' | 'custom';
+  isDefault?: boolean;
+  userId: string;
+}) {
+  try {
+    const now = new Date();
+    return await db
+      .insert(prompt)
+      .values({
+        name,
+        description,
+        content,
+        type,
+        isDefault,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to create prompt');
+  }
+}
+
+export async function getPromptsByUserId({
+  userId,
+  searchTerm,
+  type,
+}: {
+  userId: string;
+  searchTerm?: string;
+  type?: 'chat' | 'code' | 'name' | 'custom' | 'all';
+}) {
+  try {
+    let whereConditions = and(
+      eq(prompt.userId, userId),
+      eq(prompt.isDeleted, false)
+    );
+
+    // Add search filter if provided
+    if (searchTerm) {
+      const searchCondition = or(
+        like(prompt.name, `%${searchTerm}%`),
+        like(prompt.description, `%${searchTerm}%`)
+      );
+      whereConditions = and(whereConditions, searchCondition);
+    }
+
+    // Add type filter if provided and not 'all'
+    if (type && type !== 'all') {
+      whereConditions = and(whereConditions, eq(prompt.type, type));
+    }
+
+    return await db
+      .select()
+      .from(prompt)
+      .where(whereConditions)
+      .orderBy(desc(prompt.updatedAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get prompts by user id',
+    );
+  }
+}
+
+export async function getPromptById({ id }: { id: string }) {
+  try {
+    const [selectedPrompt] = await db
+      .select()
+      .from(prompt)
+      .where(and(eq(prompt.id, id), eq(prompt.isDeleted, false)));
+    return selectedPrompt;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get prompt by id',
+    );
+  }
+}
+
+export async function updatePrompt({
+  id,
+  name,
+  description,
+  content,
+  type,
+}: {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  type: 'chat' | 'code' | 'name' | 'custom';
+}) {
+  try {
+    return await db
+      .update(prompt)
+      .set({
+        name,
+        description,
+        content,
+        type,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(prompt.id, id), eq(prompt.isDeleted, false)))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to update prompt');
+  }
+}
+
+export async function softDeletePrompt({ id }: { id: string }) {
+  try {
+    return await db
+      .update(prompt)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+      })
+      .where(eq(prompt.id, id))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to delete prompt');
+  }
+}
+
+export async function duplicatePrompt({
+  id,
+  userId,
+  newName,
+}: {
+  id: string;
+  userId: string;
+  newName: string;
+}) {
+  try {
+    // First get the original prompt
+    const [originalPrompt] = await db
+      .select()
+      .from(prompt)
+      .where(and(eq(prompt.id, id), eq(prompt.isDeleted, false)));
+
+    if (!originalPrompt) {
+      throw new ChatSDKError('not_found:database', 'Prompt not found');
+    }
+
+    // Create the duplicate
+    const now = new Date();
+    return await db
+      .insert(prompt)
+      .values({
+        name: newName,
+        description: originalPrompt.description,
+        content: originalPrompt.content,
+        type: originalPrompt.type,
+        isDefault: false, // Duplicates are never default
+        userId,
+        usageCount: 0, // Reset usage count
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to duplicate prompt',
+    );
+  }
+}
+
+export async function incrementPromptUsage({ id }: { id: string }) {
+  try {
+    return await db
+      .update(prompt)
+      .set({
+        usageCount: sql`${prompt.usageCount} + 1`,
+      })
+      .where(and(eq(prompt.id, id), eq(prompt.isDeleted, false)));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to increment prompt usage',
+    );
+  }
+}
+
+export async function seedDefaultPromptsForUser({ userId }: { userId: string }) {
+  try {
+    const now = new Date();
+    const defaultPrompts = [
+      {
+        name: 'Default Chat Prompt',
+        description: 'Standard conversational AI assistant prompt',
+        content:
+          'You are a helpful, harmless, and honest AI assistant. Provide clear, accurate, and helpful responses to user queries.',
+        type: 'chat' as const,
+        isDefault: true,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        name: 'Default Code Prompt',
+        description: 'Programming and development assistance prompt',
+        content:
+          'You are an expert software developer. Help users with coding questions, provide clean code examples, explain concepts clearly, and follow best practices.',
+        type: 'code' as const,
+        isDefault: true,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        name: 'Default Name Prompt',
+        description: 'Creative naming and branding assistance',
+        content:
+          'You are a creative naming expert. Help users generate memorable, relevant, and catchy names for their projects, products, or ideas.',
+        type: 'name' as const,
+        isDefault: true,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+
+    return await db.insert(prompt).values(defaultPrompts).returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to seed default prompts for user',
+    );
+  }
+}
+
+// MCP Server CRUD operations
+
+export async function createMCPServer({
+  name,
+  description,
+  url,
+  type,
+  command,
+  args,
+  env,
+  headers,
+  sandboxUrl,
+  enabled = false,
+  streaming = false,
+  userId,
+}: {
+  name: string;
+  description?: string;
+  url: string;
+  type: 'sse' | 'stdio';
+  command?: string;
+  args?: string[];
+  env?: Array<{ key: string; value: string }>;
+  headers?: Array<{ key: string; value: string }>;
+  sandboxUrl?: string;
+  enabled?: boolean;
+  streaming?: boolean;
+  userId: string;
+}) {
+  try {
+    const now = new Date();
+    return await db
+      .insert(mcpServer)
+      .values({
+        name,
+        description,
+        url,
+        type,
+        command,
+        args,
+        env,
+        headers,
+        sandboxUrl,
+        enabled,
+        streaming,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to create MCP server');
+  }
+}
+
+export async function getMCPServersByUserId({
+  userId,
+  searchTerm,
+  type,
+  status,
+}: {
+  userId: string;
+  searchTerm?: string;
+  type?: 'sse' | 'stdio' | 'all';
+  status?: 'connected' | 'disconnected' | 'connecting' | 'error' | 'all';
+}) {
+  try {
+    const conditions = [eq(mcpServer.userId, userId)];
+
+    // Add type filter if provided and not 'all'
+    if (type && type !== 'all') {
+      conditions.push(eq(mcpServer.type, type));
+    }
+
+    // Add status filter if provided and not 'all'
+    if (status && status !== 'all') {
+      conditions.push(eq(mcpServer.status, status));
+    }
+
+    return await db
+      .select()
+      .from(mcpServer)
+      .where(and(...conditions))
+      .orderBy(desc(mcpServer.updatedAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get MCP servers by user id',
+    );
+  }
+}
+
+export async function getMCPServerById({ id }: { id: string }) {
+  try {
+    const [selectedServer] = await db
+      .select()
+      .from(mcpServer)
+      .where(eq(mcpServer.id, id));
+    return selectedServer;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get MCP server by id',
+    );
+  }
+}
+
+export async function updateMCPServer({
+  id,
+  name,
+  description,
+  url,
+  type,
+  command,
+  args,
+  env,
+  headers,
+  sandboxUrl,
+  streaming,
+}: {
+  id: string;
+  name: string;
+  description?: string;
+  url: string;
+  type: 'sse' | 'stdio';
+  command?: string;
+  args?: string[];
+  env?: Array<{ key: string; value: string }>;
+  headers?: Array<{ key: string; value: string }>;
+  sandboxUrl?: string;
+  streaming?: boolean;
+}) {
+  try {
+    return await db
+      .update(mcpServer)
+      .set({
+        name,
+        description,
+        url,
+        type,
+        command,
+        args,
+        env,
+        headers,
+        sandboxUrl,
+        streaming,
+        updatedAt: new Date(),
+      })
+      .where(eq(mcpServer.id, id))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to update MCP server');
+  }
+}
+
+export async function deleteMCPServer({ id }: { id: string }) {
+  try {
+    return await db
+      .delete(mcpServer)
+      .where(eq(mcpServer.id, id))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to delete MCP server');
+  }
+}
+
+export async function duplicateMCPServer({
+  id,
+  userId,
+  newName,
+}: {
+  id: string;
+  userId: string;
+  newName: string;
+}) {
+  try {
+    // First get the original server
+    const [originalServer] = await db
+      .select()
+      .from(mcpServer)
+      .where(eq(mcpServer.id, id));
+
+    if (!originalServer) {
+      throw new ChatSDKError('not_found:database', 'MCP server not found');
+    }
+
+    // Create the duplicate
+    const now = new Date();
+    return await db
+      .insert(mcpServer)
+      .values({
+        name: newName,
+        description: originalServer.description,
+        url: originalServer.url,
+        type: originalServer.type,
+        command: originalServer.command,
+        args: originalServer.args,
+        env: originalServer.env,
+        headers: originalServer.headers,
+        sandboxUrl: originalServer.sandboxUrl,
+        status: 'disconnected', // Reset status for duplicate
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to duplicate MCP server',
+    );
+  }
+}
+
+export async function updateMCPServerStatus({
+  id,
+  status,
+  errorMessage,
+}: {
+  id: string;
+  status: 'connected' | 'disconnected' | 'connecting' | 'error';
+  errorMessage?: string;
+}) {
+  try {
+    return await db
+      .update(mcpServer)
+      .set({
+        status,
+        errorMessage,
+        updatedAt: new Date(),
+      })
+      .where(eq(mcpServer.id, id))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update MCP server status',
+    );
+  }
+}
+
+export async function updateMCPServerEnabled({
+  id,
+  enabled,
+}: {
+  id: string;
+  enabled: boolean;
+}) {
+  try {
+    return await db
+      .update(mcpServer)
+      .set({
+        enabled,
+        updatedAt: new Date(),
+      })
+      .where(eq(mcpServer.id, id))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update MCP server enabled status',
+    );
+  }
+}
+
+export async function getEnabledMCPServersByUserId({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(mcpServer)
+      .where(and(eq(mcpServer.userId, userId), eq(mcpServer.enabled, true)))
+      .orderBy(desc(mcpServer.updatedAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get enabled MCP servers by user id',
     );
   }
 }

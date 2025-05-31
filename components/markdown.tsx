@@ -7,10 +7,17 @@ import { CodeBlock } from './code-block';
 const components: Partial<Components> = {
   // @ts-expect-error
   code: CodeBlock,
+  p: ({ node, children, ...props }) => {
+    return (
+      <p className="m-0" {...props}>
+        {children}
+      </p>
+    );
+  },
   pre: ({ children }) => <>{children}</>,
   ol: ({ node, children, ...props }) => {
     return (
-      <ol className="list-decimal list-outside ml-4" {...props}>
+      <ol className="list-decimal list-outside ml-4 m-0" {...props}>
         {children}
       </ol>
     );
@@ -24,7 +31,7 @@ const components: Partial<Components> = {
   },
   ul: ({ node, children, ...props }) => {
     return (
-      <ul className="list-decimal list-outside ml-4" {...props}>
+      <ul className="list-decimal list-outside ml-4 m-0 p-0" {...props}>
         {children}
       </ul>
     );

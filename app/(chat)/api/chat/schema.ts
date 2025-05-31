@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { allChatModels } from '@/lib/ai/models';
 
 const textPartSchema = z.object({
   text: z.string().min(1).max(2000),
@@ -23,8 +24,26 @@ export const postRequestBodySchema = z.object({
       )
       .optional(),
   }),
-  selectedChatModel: z.enum(['chat-model', 'chat-model-reasoning']),
+  selectedChatModel: z.string().min(1).refine(
+    (value) => allChatModels.some(model => model.id === value),
+    { message: "Invalid model ID - model not found in available models" }
+  ),
   selectedVisibilityType: z.enum(['public', 'private']),
+  mcpServers: z.array(z.object({
+    url: z.string().url(),
+    type: z.enum(['sse', 'stdio']),
+    command: z.string().optional(),
+    args: z.array(z.string()).optional(),
+    env: z.array(z.object({
+      key: z.string(),
+      value: z.string(),
+    })).optional(),
+    headers: z.array(z.object({
+      key: z.string(),
+      value: z.string(),
+    })).optional(),
+    streaming: z.boolean().optional(),
+  })).optional(),
 });
 
 export type PostRequestBody = z.infer<typeof postRequestBodySchema>;

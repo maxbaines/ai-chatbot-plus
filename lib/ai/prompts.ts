@@ -50,19 +50,37 @@ About the origin of user's request:
 - country: ${requestHints.country}
 `;
 
-export const systemPrompt = ({
+export const systemPrompt = async ({
   selectedChatModel,
   requestHints,
+  promptId,
 }: {
   selectedChatModel: string;
   requestHints: RequestHints;
+  promptId?: string | null;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
+  
+  let basePrompt = regularPrompt;
+  
+  // If promptId is provided, load the custom prompt from database
+  if (promptId) {
+    try {
+      const { getPromptById } = await import('@/lib/db/queries');
+      const customPrompt = await getPromptById({ id: promptId });
+      if (customPrompt) {
+        basePrompt = customPrompt.content;
+      }
+    } catch (error) {
+      console.error('Failed to load custom prompt:', error);
+      // Fall back to regular prompt if loading fails
+    }
+  }
 
-  if (selectedChatModel === 'chat-model-reasoning') {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+  if (selectedChatModel === 'xai-chat-model-reasoning') {
+    return `${basePrompt}\n\n${requestPrompt}`;
   } else {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+    return `${basePrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
   }
 };
 

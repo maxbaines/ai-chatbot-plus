@@ -20,7 +20,6 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { SuggestedActions } from './suggested-actions';
 import equal from 'fast-deep-equal';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -60,6 +59,14 @@ function PureMultimodalInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
 
+  // History management
+  const [inputHistory, setInputHistory] = useLocalStorage<Array<{text: string, timestamp: number}>>('input-history', []);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [ghostSuggestion, setGhostSuggestion] = useState('');
+  const [draftInput, setDraftInput] = useState('');
+
+  const HISTORY_LIMIT = 50;
+
   useEffect(() => {
     if (textareaRef.current) {
       adjustHeight();
@@ -85,6 +92,95 @@ function PureMultimodalInput({
     '',
   );
 
+  // Add input to history when form is submitted
+  const addToHistory = useCallback((inputText: string) => {
+    const trimmedInput = inputText.trim();
+    if (!trimmedInput) return;
+
+    setInputHistory(prevHistory => {
+      // Check if the last entry is the same to avoid duplicates
+      if (prevHistory.length > 0 && prevHistory[prevHistory.length - 1].text === trimmedInput) {
+        return prevHistory;
+      }
+
+      const newEntry = { text: trimmedInput, timestamp: Date.now() };
+      const updatedHistory = [...prevHistory, newEntry];
+
+      // Limit history size
+      if (updatedHistory.length > HISTORY_LIMIT) {
+        return updatedHistory.slice(-HISTORY_LIMIT);
+      }
+
+      return updatedHistory;
+    });
+  }, [setInputHistory, HISTORY_LIMIT]);
+
+  // Navigate through history
+  const navigateHistory = useCallback((direction: 'up' | 'down') => {
+    if (inputHistory.length === 0) return;
+
+    if (direction === 'up') {
+      if (historyIndex === -1) {
+        // Save current input as draft
+        setDraftInput(input);
+        setHistoryIndex(inputHistory.length - 1);
+        setInput(inputHistory[inputHistory.length - 1].text);
+      } else if (historyIndex > 0) {
+        setHistoryIndex(historyIndex - 1);
+        setInput(inputHistory[historyIndex - 1].text);
+      }
+    } else if (direction === 'down') {
+      if (historyIndex === -1) return;
+      
+      if (historyIndex < inputHistory.length - 1) {
+        setHistoryIndex(historyIndex + 1);
+        setInput(inputHistory[historyIndex + 1].text);
+      } else {
+        // Return to draft
+        setHistoryIndex(-1);
+        setInput(draftInput);
+        setDraftInput('');
+      }
+    }
+  }, [input, inputHistory, historyIndex, draftInput, setInput]);
+
+  // Update ghost suggestion based on current input
+  useEffect(() => {
+    if (historyIndex !== -1) {
+      // Don't show suggestions when navigating history
+      setGhostSuggestion('');
+      return;
+    }
+
+    if (!input.trim()) {
+      setGhostSuggestion('');
+      return;
+    }
+
+    // Find the most recent matching history entry
+    const matchingEntry = inputHistory
+      .slice()
+      .reverse()
+      .find(entry => 
+        entry.text.toLowerCase().startsWith(input.toLowerCase()) && 
+        entry.text.length > input.length
+      );
+
+    if (matchingEntry) {
+      setGhostSuggestion(matchingEntry.text.slice(input.length));
+    } else {
+      setGhostSuggestion('');
+    }
+  }, [input, inputHistory, historyIndex]);
+
+  // Accept ghost suggestion
+  const acceptSuggestion = useCallback(() => {
+    if (ghostSuggestion) {
+      setInput(input + ghostSuggestion);
+      setGhostSuggestion('');
+    }
+  }, [input, ghostSuggestion, setInput]);
+
   useEffect(() => {
     if (textareaRef.current) {
       const domValue = textareaRef.current.value;
@@ -104,12 +200,21 @@ function PureMultimodalInput({
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
     adjustHeight();
+    
+    // Reset history navigation when user types
+    if (historyIndex !== -1) {
+      setHistoryIndex(-1);
+      setDraftInput('');
+    }
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
+    // Add to history before submitting
+    addToHistory(input);
+
     window.history.replaceState({}, '', `/chat/${chatId}`);
 
     handleSubmit(undefined, {
@@ -118,12 +223,17 @@ function PureMultimodalInput({
 
     setAttachments([]);
     setLocalStorageInput('');
+    setGhostSuggestion('');
+    setHistoryIndex(-1);
+    setDraftInput('');
     resetHeight();
 
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
   }, [
+    input,
+    addToHistory,
     attachments,
     handleSubmit,
     setAttachments,
@@ -220,16 +330,6 @@ function PureMultimodalInput({
         )}
       </AnimatePresence>
 
-      {messages.length === 0 &&
-        attachments.length === 0 &&
-        uploadQueue.length === 0 && (
-          <SuggestedActions
-            append={append}
-            chatId={chatId}
-            selectedVisibilityType={selectedVisibilityType}
-          />
-        )}
-
       <input
         type="file"
         className="fixed -top-4 -left-4 size-0.5 opacity-0 pointer-events-none"
@@ -262,49 +362,111 @@ function PureMultimodalInput({
         </div>
       )}
 
-      <Textarea
-        data-testid="multimodal-input"
-        ref={textareaRef}
-        placeholder="Send a message..."
-        value={input}
-        onChange={handleInput}
+      <div
         className={cx(
-          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 dark:border-zinc-700',
-          className,
+          'relative flex flex-col gap-2 rounded-xl',
+          'bg-white/20 dark:bg-neutral-900/20',
+          'backdrop-blur-xl',
+          'border border-white/20 dark:border-white/10',
+          'shadow-[0_0_1px_1px_rgba(0,0,0,0.05)] dark:shadow-[0_0_1px_1px_rgba(255,255,255,0.05)]',
+          'focus-within:border-white/30 dark:focus-within:border-white/20',
+          'focus-within:shadow-[0_0_15px_2px_rgba(0,0,0,0.1)] dark:focus-within:shadow-[0_0_15px_2px_rgba(255,255,255,0.1)]',
+          'transition-all duration-200'
         )}
-        rows={2}
-        autoFocus
-        onKeyDown={(event) => {
-          if (
-            event.key === 'Enter' &&
-            !event.shiftKey &&
-            !event.nativeEvent.isComposing
-          ) {
-            event.preventDefault();
+      >
+        <div className="relative">
+          <Textarea
+            data-testid="multimodal-input"
+            ref={textareaRef}
+            placeholder="Send a message..."
+            value={input}
+            onChange={handleInput}
+            className={cx(
+              'min-h-[24px] overflow-hidden resize-none rounded-xl !text-base pb-10',
+              '!border-none !ring-0 !ring-offset-0 focus-visible:!ring-0 focus-visible:!ring-offset-0',
+              '!bg-transparent placeholder:text-neutral-500 dark:placeholder:text-neutral-400',
+              'text-neutral-800 dark:text-neutral-100',
+              className,
+            )}
+            rows={2}
+            autoFocus
+            onKeyDown={(event) => {
+              if (event.shiftKey && event.key === 'ArrowUp') {
+                event.preventDefault();
+                navigateHistory('up');
+              } else if (event.shiftKey && event.key === 'ArrowDown') {
+                event.preventDefault();
+                navigateHistory('down');
+              } else if (event.key === 'Tab' && ghostSuggestion) {
+                event.preventDefault();
+                acceptSuggestion();
+              } else if (event.key === 'ArrowRight' && ghostSuggestion) {
+                // Accept suggestion if cursor is at the end
+                const textarea = event.target as HTMLTextAreaElement;
+                if (textarea.selectionStart === textarea.value.length) {
+                  event.preventDefault();
+                  acceptSuggestion();
+                }
+              } else if (event.key === 'Escape') {
+                setGhostSuggestion('');
+                if (historyIndex !== -1) {
+                  setHistoryIndex(-1);
+                  setInput(draftInput);
+                  setDraftInput('');
+                }
+              } else if (
+                event.key === 'Enter' &&
+                !event.shiftKey &&
+                !event.nativeEvent.isComposing
+              ) {
+                event.preventDefault();
 
-            if (status !== 'ready') {
-              toast.error('Please wait for the model to finish its response!');
-            } else {
-              submitForm();
-            }
-          }
-        }}
-      />
-
-      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
-        <AttachmentsButton fileInputRef={fileInputRef} status={status} />
-      </div>
-
-      <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
-        {status === 'submitted' ? (
-          <StopButton stop={stop} setMessages={setMessages} />
-        ) : (
-          <SendButton
-            input={input}
-            submitForm={submitForm}
-            uploadQueue={uploadQueue}
+                if (status !== 'ready') {
+                  toast.error('Please wait for the model to finish its response!');
+                } else {
+                  submitForm();
+                }
+              }
+            }}
           />
-        )}
+
+          {/* Ghost text suggestion */}
+          {ghostSuggestion && (
+            <div
+              className={cx(
+                'absolute inset-0 pointer-events-none',
+                'text-neutral-400 dark:text-neutral-500',
+                'whitespace-pre-wrap break-words',
+                'px-3 py-2 rounded-xl',
+                'overflow-hidden'
+              )}
+              style={{
+                fontFamily: 'inherit',
+                fontSize: 'inherit',
+                lineHeight: 'inherit',
+                paddingBottom: '2.5rem',
+              }}
+            >
+              {input}{ghostSuggestion}
+            </div>
+          )}
+        </div>
+
+        <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
+          <AttachmentsButton fileInputRef={fileInputRef} status={status} />
+        </div>
+
+        <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
+          {status === 'submitted' ? (
+            <StopButton stop={stop} setMessages={setMessages} />
+          ) : (
+            <SendButton
+              input={input}
+              submitForm={submitForm}
+              uploadQueue={uploadQueue}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -333,13 +495,19 @@ function PureAttachmentsButton({
   return (
     <Button
       data-testid="attachments-button"
-      className="rounded-md rounded-bl-lg p-[7px] h-fit dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
+      className={cx(
+        'h-8 w-8 rounded-full',
+        'text-neutral-400 dark:text-neutral-500',
+        'hover:text-neutral-900 dark:hover:text-neutral-100',
+        'transition-all duration-200',
+      )}
       onClick={(event) => {
         event.preventDefault();
         fileInputRef.current?.click();
       }}
       disabled={status !== 'ready'}
       variant="ghost"
+      size="icon"
     >
       <PaperclipIcon size={14} />
     </Button>
@@ -358,12 +526,22 @@ function PureStopButton({
   return (
     <Button
       data-testid="stop-button"
-      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      className={cx(
+        'h-8 w-8 rounded-full',
+        'bg-transparent',
+        'text-neutral-400 dark:text-neutral-500',
+        'hover:text-neutral-900 dark:hover:text-neutral-100',
+        'border-transparent',
+        'transition-all duration-200',
+        'backdrop-blur-sm'
+      )}
       onClick={(event) => {
         event.preventDefault();
         stop();
         setMessages((messages) => messages);
       }}
+      variant="ghost"
+      size="icon"
     >
       <StopIcon size={14} />
     </Button>
@@ -384,12 +562,22 @@ function PureSendButton({
   return (
     <Button
       data-testid="send-button"
-      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      className={cx(
+        'h-8 w-8 rounded-full',
+        'bg-transparent',
+        'text-neutral-400 dark:text-neutral-500',
+        'hover:text-neutral-900 dark:hover:text-neutral-100',
+        'border-transparent',
+        'transition-all duration-200',
+        'backdrop-blur-sm'
+      )}
       onClick={(event) => {
         event.preventDefault();
         submitForm();
       }}
       disabled={input.length === 0 || uploadQueue.length > 0}
+      variant="ghost"
+      size="icon"
     >
       <ArrowUpIcon size={14} />
     </Button>

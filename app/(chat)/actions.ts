@@ -15,6 +15,47 @@ export async function saveChatModelAsCookie(model: string) {
   cookieStore.set('chat-model', model);
 }
 
+export async function saveSelectedPromptAsCookie(promptId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set('selected-prompt', promptId);
+}
+
+export async function updateChatPromptAction({
+  chatId,
+  promptId,
+}: {
+  chatId: string;
+  promptId: string;
+}) {
+  const { updateChatPromptId } = await import('@/lib/db/queries');
+  
+  try {
+    await updateChatPromptId({ chatId, promptId });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update chat prompt:', error);
+    return { success: false, error: 'Failed to update chat prompt' };
+  }
+}
+
+export async function updateChatModelAction({
+  chatId,
+  modelId,
+}: {
+  chatId: string;
+  modelId: string;
+}) {
+  const { updateChatModelId } = await import('@/lib/db/queries');
+  
+  try {
+    await updateChatModelId({ chatId, modelId });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update chat model:', error);
+    return { success: false, error: 'Failed to update chat model' };
+  }
+}
+
 export async function generateTitleFromUserMessage({
   message,
 }: {

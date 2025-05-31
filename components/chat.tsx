@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
-import { fetcher, fetchWithErrorHandlers, generateUUID } from '@/lib/utils';
+import { fetcher, fetchWithErrorHandlers, generateUUID, cn } from '@/lib/utils';
 import { Artifact } from './artifact';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
@@ -20,6 +20,9 @@ import { useSearchParams } from 'next/navigation';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useAutoResume } from '@/hooks/use-auto-resume';
 import { ChatSDKError } from '@/lib/errors';
+import { useChatLayout } from '@/hooks/use-chat-layout';
+import type { Prompt } from '@/lib/db/schema';
+import { useMCP } from '@/lib/ai/mcp/mcp-context';
 
 export function Chat({
   id,
@@ -29,6 +32,8 @@ export function Chat({
   isReadonly,
   session,
   autoResume,
+  initialPrompts,
+  selectedPromptId,
 }: {
   id: string;
   initialMessages: Array<UIMessage>;
@@ -37,13 +42,20 @@ export function Chat({
   isReadonly: boolean;
   session: Session;
   autoResume: boolean;
+  initialPrompts: Array<Prompt>;
+  selectedPromptId?: string;
 }) {
+  // Determine if this is an existing chat based on whether there are initial messages
+  const isExistingChat = initialMessages.length > 0;
   const { mutate } = useSWRConfig();
 
   const { visibilityType } = useChatVisibility({
     chatId: id,
     initialVisibilityType,
   });
+
+  // Get MCP server data from context
+  const { mcpServersForApi } = useMCP();
 
   const {
     messages,
@@ -69,6 +81,7 @@ export function Chat({
       message: body.messages.at(-1),
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
+      mcpServers: mcpServersForApi,
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
@@ -107,6 +120,7 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+  const { layout } = useChatLayout();
 
   useAutoResume({
     autoResume,
@@ -118,13 +132,16 @@ export function Chat({
 
   return (
     <>
-      <div className="flex flex-col min-w-0 h-dvh bg-background">
+      <div className="flex flex-col min-w-0 h-dvh bg-background relative">
         <ChatHeader
           chatId={id}
           selectedModelId={initialChatModel}
           selectedVisibilityType={initialVisibilityType}
           isReadonly={isReadonly}
           session={session}
+          initialPrompts={initialPrompts}
+          selectedPromptId={selectedPromptId}
+          isExistingChat={isExistingChat}
         />
 
         <Messages
@@ -135,10 +152,18 @@ export function Chat({
           setMessages={setMessages}
           reload={reload}
           isReadonly={isReadonly}
+          append={append}
+          selectedVisibilityType={ visibilityType}
           isArtifactVisible={isArtifactVisible}
         />
 
-        <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
+        <form className={cn(
+          "absolute bottom-0 left-0 right-0 flex mx-auto mb-6 backdrop-blur-md border-border/50 w-full z-10",
+          {
+            "md:max-w-3xl px-4": layout === 'bubble',
+            "md:max-w-5xl": layout === 'wide',
+          }
+        )}>
           {!isReadonly && (
             <MultimodalInput
               chatId={id}
