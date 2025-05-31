@@ -6,8 +6,9 @@ import type { Session } from 'next-auth';
 import { useSearchParams } from 'next/navigation';
 import { MCPHeader } from './mcp-header';
 import { MCPTabs } from './mcp-tabs';
-import { deleteMCPServerAction, duplicateMCPServerAction, testConnectionAction, toggleMCPServerEnabledAction } from '@/app/(mcp-client)/actions';
+import { deleteMCPServerAction, duplicateMCPServerAction, testConnectionAction } from '@/app/(mcp-client)/actions';
 import type { MCPServer } from '@/lib/db/schema';
+import { useMCP } from '@/lib/ai/mcp/mcp-context';
 
 // Client-side interface that matches what the UI components expect
 interface ClientMCPServer {
@@ -57,20 +58,22 @@ export function MCPClient({
   initialServers?: MCPServer[];
 }) {
   const { mutate } = useSWRConfig();
+  const { mcpServers, toggleServerEnabled, refreshServers, updateServerStatus } = useMCP();
 
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
-  const [servers, setServers] = useState<ClientMCPServer[]>(() =>
-    initialServers.map(transformServer)
-  );
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+
+  // Transform mcpServers from context to ClientMCPServer format
+  const servers = mcpServers.map(transformServer);
 
   const handleDeleteServer = async (serverId: string) => {
     try {
       const result = await deleteMCPServerAction(serverId);
       if (result.success) {
-        setServers((prev) => prev.filter((s) => s.id !== serverId));
+        // Refresh servers from context after deletion
+        await refreshServers();
       }
     } catch (error) {
       console.error('Failed to delete server:', error);
@@ -82,9 +85,8 @@ export function MCPClient({
       const newName = `${server.name} (Copy)`;
       const result = await duplicateMCPServerAction(server.id, newName);
       if (result.success && result.server) {
-        // Add the new server to the current list (optimistic update)
-        const newServer = transformServer(result.server);
-        setServers((prev) => [...prev, newServer]);
+        // Refresh servers from context after duplication
+        await refreshServers();
       }
     } catch (error) {
       console.error('Failed to duplicate server:', error);
@@ -95,17 +97,11 @@ export function MCPClient({
     try {
       const result = await testConnectionAction(serverId);
       if (result.success && result.server) {
-        // Update the server status optimistically
-        setServers((prev) =>
-          prev.map((s) =>
-            s.id === serverId
-              ? { 
-                  ...s, 
-                  status: result.server.status, 
-                  errorMessage: result.server.errorMessage || undefined 
-                }
-              : s
-          )
+        // Update the server status through context
+        await updateServerStatus(
+          serverId, 
+          result.server.status, 
+          result.server.errorMessage || undefined
         );
       }
     } catch (error) {
@@ -115,19 +111,10 @@ export function MCPClient({
 
   const handleToggleEnabled = async (serverId: string, enabled: boolean) => {
     try {
-      const result = await toggleMCPServerEnabledAction(serverId, enabled);
-      if (result.success && result.server) {
-        // Update the server enabled status optimistically
-        setServers((prev) =>
-          prev.map((s) =>
-            s.id === serverId
-              ? { 
-                  ...s, 
-                  enabled: result.server.enabled
-                }
-              : s
-          )
-        );
+      // Use the context's toggleServerEnabled method
+      const success = await toggleServerEnabled(serverId, enabled);
+      if (!success) {
+        console.error('Failed to toggle server enabled status');
       }
     } catch (error) {
       console.error('Failed to toggle server enabled status:', error);

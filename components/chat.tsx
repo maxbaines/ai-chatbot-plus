@@ -55,7 +55,7 @@ export function Chat({
   });
 
   // Get MCP server data from context
-  const { mcpServersForApi } = useMCP();
+  const { getActiveServersForApi } = useMCP();
 
   const {
     messages,
@@ -81,7 +81,7 @@ export function Chat({
       message: body.messages.at(-1),
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
-      mcpServers: mcpServersForApi,
+      mcpServers: getActiveServersForApi(),
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
