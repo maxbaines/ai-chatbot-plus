@@ -11,6 +11,7 @@ import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
 import type { MessageContentProps } from './message-types';
+import ToolCallPreview from './tool-call-preview';
 
 export const MessageContent = ({
   chatId,
@@ -129,7 +130,7 @@ export const MessageContent = ({
                     args={args}
                     isReadonly={isReadonly}
                   />
-                ) : null}
+                ) : <ToolCallPreview/>}
               </div>
             );
           }
@@ -159,7 +160,7 @@ export const MessageContent = ({
                     isReadonly={isReadonly}
                   />
                 ) : (
-                  <pre>{JSON.stringify(result, null, 2)}</pre>
+                <ToolCallPreview result={result} type='done'/>
                 )}
               </div>
             );
