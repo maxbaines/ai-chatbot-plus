@@ -136,6 +136,7 @@ export const MessageContent = ({
           }
 
           if (state === 'result') {
+            
             const { result } = toolInvocation;
 
             return (
@@ -160,7 +161,7 @@ export const MessageContent = ({
                     isReadonly={isReadonly}
                   />
                 ) : (
-                <ToolCallPreview result={result} type='done'/>
+                <ToolCallPreview result={result} type='done' toolName={toolName}/>
                 )}
               </div>
             );

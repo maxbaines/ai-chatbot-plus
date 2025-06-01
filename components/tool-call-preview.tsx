@@ -9,27 +9,15 @@ interface ToolCallPreviewProps {
   protocolColor?: "blue" | "emerald" | "violet" | "amber" | "rose" // Color theme
   type?: "loading" | "done" // Component state
   result?: any // JSON result data (used when type="done")
+  toolName?: string // Tool name to display when type="done"
 }
 
-export default function ToolCallPreview({ className, protocol = "MCP", protocolColor = "blue", type = "loading", result }: ToolCallPreviewProps) {
+export default function ToolCallPreview({ className, protocol = "MCP", protocolColor = "blue", type = "loading", result, toolName }: ToolCallPreviewProps) {
   // Binary stream animation state
   const [binaryStream1, setBinaryStream1] = useState<string[]>([])
   const [binaryStream2, setBinaryStream2] = useState<string[]>([])
   // JSON expansion state
   const [isExpanded, setIsExpanded] = useState(false)
-
-  // Format and truncate JSON for preview
-  const formatJsonPreview = (data: any) => {
-    if (!data) return ""
-    try {
-      const jsonString = typeof data === "string" ? data : JSON.stringify(data, null, 2)
-      const lines = jsonString.split("\n")
-      if (lines.length <= 3) return jsonString
-      return lines.slice(0, 3).join("\n") + "\n..."
-    } catch {
-      return "Invalid JSON"
-    }
-  }
 
   const formatFullJson = (data: any) => {
     if (!data) return ""
@@ -143,40 +131,31 @@ export default function ToolCallPreview({ className, protocol = "MCP", protocolC
       </span>
     )
   }
-
-  // Get color classes based on protocol color
-  const getColorClasses = () => {
-    switch (protocolColor) {
-      case "violet":
-        return "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800"
-      case "amber":
-        return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
-      case "rose":
-        return "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800"
-      case "emerald":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
-      default:
-        return "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-    }
-  }
-
   if (type === "done" && result) {
     return (
       <div 
         className={cn(
           "cursor-pointer transition-all duration-200 hover:opacity-80",
-          isExpanded ? "flex flex-col gap-3" : "flex items-center gap-3",
+          isExpanded ? "flex flex-col gap-3" : "flex flex-col gap-2",
           className
         )}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        {/* Header with Protocol Badge */}
+        {/* Header with Protocol Badge and Complete */}
         <div className="flex items-center gap-3">
           <div className={cn("inline-flex items-center px-2 py-1 rounded-md border text-xs font-mono font-medium")}>
             {protocol}
           </div>
           <div className="text-xs text-muted-foreground font-mono">✓ Complete</div>
         </div>
+        
+        {/* Tool Name on separate line */}
+        {toolName && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground ml-0">
+            <div className="w-1 h-1 rounded-full bg-emerald-500"></div>
+            <span className="font-mono">{toolName}</span>
+          </div>
+        )}
 
         {/* JSON Result Display - only show when expanded */}
         {isExpanded && (

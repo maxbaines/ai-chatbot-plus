@@ -64,7 +64,7 @@ export function PromptCard({ prompt, onDelete, onDuplicate }: PromptCardProps) {
 
   return (
     <Card className="group hover:shadow-sm transition-all duration-200 border-border/50 hover:border-border flex flex-col h-full">
-      <CardHeader className="">
+      <CardHeader className="p-3">
         {/* Title row */}
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
@@ -148,7 +148,7 @@ export function PromptCard({ prompt, onDelete, onDuplicate }: PromptCardProps) {
         {/* Description */}
         <CardDescription className="text-sm leading-relaxed line-clamp-2">{prompt.description}</CardDescription>
       </CardHeader>
-      <CardContent className="pt-0 flex-1">
+      <CardContent className="pt-0 p-3 flex-1">
         <div className="bg-muted/30 rounded border p-3">
           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4 font-mono">{prompt.content}</p>
         </div>

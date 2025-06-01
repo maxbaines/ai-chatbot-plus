@@ -210,7 +210,7 @@ export function MCPServerCard({ server, onDelete, onDuplicate, onTestConnection,
         </div>
 
         {/* Description */}
-        <CardDescription className=" text-sm leading-relaxed line-clamp-2">
+        <CardDescription className="text-sm leading-relaxed line-clamp-2">
           {server.description || 'No description provided'}
         </CardDescription>
       </CardHeader>

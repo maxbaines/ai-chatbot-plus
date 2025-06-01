@@ -136,12 +136,17 @@ export async function POST(request: Request) {
     });
 
     const { longitude, latitude, city, country } = geolocation(request);
+    // Get the current date and time
+    const now = new Date();
 
+    // Format the date and time as a readable string
+    const dateTime = now.toString();
     const requestHints: RequestHints = {
       longitude,
       latitude,
       city,
       country,
+      dateTime,
     };
 
     await saveMessages({

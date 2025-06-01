@@ -40,6 +40,7 @@ export interface RequestHints {
   longitude: Geo['longitude'];
   city: Geo['city'];
   country: Geo['country'];
+  dateTime: String;
 }
 
 export const getRequestPromptFromHints = (requestHints: RequestHints) => `\
@@ -48,6 +49,7 @@ About the origin of user's request:
 - lon: ${requestHints.longitude}
 - city: ${requestHints.city}
 - country: ${requestHints.country}
+- date and time: ${requestHints.dateTime}
 `;
 
 export const systemPrompt = async ({

@@ -56,6 +56,14 @@ const components: Partial<Components> = {
       </Link>
     );
   },
+  img: ({ node, children, ...props }) => {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+      <img className="m-0 p-0 h-[200px] rounded-md" {...props}>
+        {children}
+      </img>
+    );
+  },
   h1: ({ node, children, ...props }) => {
     return (
       <h1 className="text-3xl font-semibold mt-6 mb-2" {...props}>
