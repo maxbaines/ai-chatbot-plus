@@ -12,6 +12,7 @@ import { useSidebar } from './ui/sidebar';
 import { memo } from 'react';
 import { type VisibilityType, VisibilitySelector } from './visibility-selector';
 import { PromptSelector } from './prompt-selector';
+import { MCPSelector } from './mcp-selector';
 import type { Session } from 'next-auth';
 import type { Prompt } from '@/lib/db/schema';
 
@@ -80,12 +81,20 @@ function PureChatHeader({
       )}
 
       {!isReadonly && (
-        <VisibilitySelector
-          chatId={chatId}
-          selectedVisibilityType={selectedVisibilityType}
+        <MCPSelector
           className="order-1 md:order-3"
         />
       )}
+
+      {!isReadonly && (
+        <VisibilitySelector
+          chatId={chatId}
+          selectedVisibilityType={selectedVisibilityType}
+          className="order-1 md:order-4"
+        />
+      )}
+
+      
     
     </header>
   );

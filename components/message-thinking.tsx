@@ -12,21 +12,7 @@ export const ThinkingMessage = () => {
   
   // Binary stream animation state
   const [binaryStream, setBinaryStream] = useState<string[]>([]);
-  const [currentMessage, setCurrentMessage] = useState('Processing...');
-  
-  // Creative thinking messages
-  const thinkingMessages = [
-    'Processing...',
-    'Analyzing...',
-    'Thinking...',
-    'Computing...',
-    'Considering...',
-    'Evaluating...',
-    'Synthesizing...',
-    'Reasoning...',
-    'Calculating...'
-  ];
-  
+    
   // Generate and update binary stream with thinking-related injections
   useEffect(() => {
     const generateBinary = () => (Math.random() > 0.5 ? '1' : '0');
@@ -60,17 +46,11 @@ export const ThinkingMessage = () => {
       });
     }, 250);
     
-    // Update thinking message
-    const messageInterval = setInterval(() => {
-      setCurrentMessage(thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)]);
-    }, 1500);
-    
     // Initialize stream
     setBinaryStream(Array(8).fill('').map(generateBinary));
     
     return () => {
       clearInterval(streamInterval);
-      clearInterval(messageInterval);
     };
   }, []);
   
@@ -126,25 +106,14 @@ export const ThinkingMessage = () => {
     >
       <div className={cn('flex w-full', {
         'gap-4': layout === 'bubble',
-        'justify-center px-4': layout === 'wide',
+        'justify-center': layout === 'wide',
       })}>
         {layout === 'wide' ? (
           <div className="w-full max-w-5xl relative">
-            <motion.div 
-              className="absolute left-0 top-0 size-6 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background"
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <div className="translate-y-px">
-                <SparklesIcon size={14} />
-              </div>
-            </motion.div>
-            <div className="ml-12">
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <span className="text-sm font-mono">{currentMessage}</span>
-                <div className="flex items-center gap-1">
+           
+            <div className="">
+              <div className="flex items-center gap-1 text-muted-foreground">
                   {binaryStream.map((item, index) => renderStreamItem(item, index))}
-                </div>
               </div>
             </div>
           </div>
@@ -161,10 +130,7 @@ export const ThinkingMessage = () => {
             </motion.div>
             <div className="flex flex-col gap-2 w-full">
               <div className="flex items-center gap-3 text-muted-foreground">
-                <span className="text-sm font-mono">{currentMessage}</span>
-                <div className="flex items-center gap-1">
                   {binaryStream.map((item, index) => renderStreamItem(item, index))}
-                </div>
               </div>
             </div>
           </>

@@ -95,4 +95,4 @@ export const PreviewMessage = memo(
 );
 
 // Re-export ThinkingMessage for backward compatibility
-export { ThinkingMessage } from './thinking-message';
+export { ThinkingMessage } from './message-thinking';

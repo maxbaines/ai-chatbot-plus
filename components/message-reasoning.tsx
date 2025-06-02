@@ -101,7 +101,7 @@ export function MessageReasoning({
       {/* Reasoning Content Display - only show when expanded */}
       {isExpanded && reasoning && (
         <div className={cn("border rounded-md font-mono text-xs")}>
-          <div className="whitespace-pre-wrap overflow-hidden p-3 m-0 max-h-60 overflow-y-auto text-zinc-600 dark:text-zinc-400">
+          <div className="overflow-hidden p-3 m-0 max-h-60 overflow-y-auto">
             <Markdown>{reasoning}</Markdown>
           </div>
         </div>

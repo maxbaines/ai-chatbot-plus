@@ -74,7 +74,7 @@ export function VisibilitySelector({
           className="hidden md:flex h-9 min-h-9 max-h-9 px-2"
         >
           {selectedVisibility?.icon}
-          {selectedVisibility?.label}
+          {visibilityType === 'public' && selectedVisibility?.label}
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>

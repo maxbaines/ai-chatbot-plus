@@ -21,7 +21,7 @@ const startSandbox = async ({ id, command, args, env }: {
   console.log(`Mock: Starting sandbox for ${id} with command: ${command}`, { args, env });
   
   // Simulate some delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 1));
   
   // Return a mock URL
   return {
@@ -34,7 +34,7 @@ const stopSandbox = async (id: string) => {
   console.log(`Mock: Stopping sandbox for ${id}`);
   
   // Simulate some delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 1));
   
   return { success: true };
 };
@@ -72,8 +72,7 @@ interface MCPContextType {
 const MCPContext = createContext<MCPContextType | undefined>(undefined);
 
 // Helper function to wait for server readiness
-async function waitForServerReady(url: string, maxAttempts = 20, timeout = 3000) {
-  console.log(`Checking server readiness at ${url}, will try ${maxAttempts} times`);
+async function waitForServerReady(url: string, maxAttempts = 20, timeout = 5000) {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const controller = new AbortController();
@@ -83,20 +82,18 @@ async function waitForServerReady(url: string, maxAttempts = 20, timeout = 3000)
       clearTimeout(timeoutId);
       
       if (response.status === 200) {
-        console.log(`Server ready at ${url} after ${i + 1} attempts`);
         return true;
       }
-      console.log(`Server not ready yet (attempt ${i + 1}), status: ${response.status}`);
     } catch (error) {
       console.log(`Server connection failed (attempt ${i + 1}): ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     
     // Wait before next attempt with progressive backoff
     const waitTime = Math.min(1000 * (i + 1), 5000); // Start with 1s, increase each time, max 5s
-    console.log(`Waiting ${waitTime}ms before next attempt`);
+
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
-  console.log(`Server failed to become ready after ${maxAttempts} attempts`);
+
   return false;
 }
 
