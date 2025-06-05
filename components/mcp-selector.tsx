@@ -75,6 +75,11 @@ export function MCPSelector({
   const enabledCount = enabledMcpServers.length;
   const hasErrors = mcpServers.some(server => server.status === 'error' && server.enabled);
 
+  // Hide the component entirely if no servers are configured
+  if (mcpServers.length === 0) {
+    return null;
+  }
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
@@ -96,43 +101,37 @@ export function MCPSelector({
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[320px] p-0">
-       
+      <DropdownMenuContent align="start" className="w-[300px] p-0">
+
         <div className="max-h-[300px] overflow-y-auto">
-          {mcpServers.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              No MCP servers configured
-            </div>
-          ) : (
-            mcpServers.map((server) => (
-              <DropdownMenuItem
-                key={server.id}
-                onSelect={(e) => e.preventDefault()}
-                className="p-0"
-              >
-                <div className="flex items-center justify-between w-full p-3 hover:bg-accent/50">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm truncate">{server.name}</span>
-                      {getStatusIcon(server.status)}
+          {mcpServers.map((server) => (
+            <DropdownMenuItem
+              key={server.id}
+              onSelect={(e) => e.preventDefault()}
+              className="p-0"
+            >
+              <div className="flex items-center justify-between w-full p-3 hover:bg-accent/50">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm truncate">{server.name}</span>
+                    {getStatusIcon(server.status)}
+                  </div>
+              
+                  {server.description && (
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                      {server.description}
                     </div>
-                
-                    {server.description && (
-                      <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                        {server.description}
-                      </div>
-                    )}
-                  </div>
-                  <div className="ml-3">
-                    <Switch
-                      checked={server.enabled ?? false}
-                      onCheckedChange={(checked) => handleToggleServer(server.id, checked)}
-                    />
-                  </div>
+                  )}
                 </div>
-              </DropdownMenuItem>
-            ))
-          )}
+                <div className="ml-3">
+                  <Switch
+                    checked={server.enabled ?? false}
+                    onCheckedChange={(checked) => handleToggleServer(server.id, checked)}
+                  />
+                </div>
+              </div>
+            </DropdownMenuItem>
+          ))}
         </div>
 
         {mcpServers.length > 0 && (

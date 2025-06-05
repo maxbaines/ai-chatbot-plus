@@ -3,16 +3,52 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AppCommand } from '@/components/app-command';
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { MCPProvider } from '@/lib/ai/mcp/mcp-context';
 
+const APP_NAME = 'Chatbot+';
+const APP_DEFAULT_TITLE = 'Chatbot+';
+const APP_TITLE_TEMPLATE = '%s - Chatbot+';
+const APP_DESCRIPTION = 'Chatbot+ the Next.js chatbot template using the AI SDK and Love.';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://baa.chat'),
-  title: 'Chatbot+',
-  description: 'Chatbot+ the Next.js chatbot template using the AI SDK and Love.',
+  metadataBase: new URL('https://chatbotplus.app'),
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: APP_DEFAULT_TITLE,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: 'website',
+    siteName: APP_NAME,
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary',
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
+  manifest: '/manifest.json',
 };
 
 export const viewport = {
@@ -87,6 +123,7 @@ export default async function RootLayout({
                   {children}
                 </div>
                 <AppCommand />
+                {/*<PWAInstallPrompt />*/}
                 <Toaster position="top-center" />
               </MCPProvider>
             </SessionProvider>

@@ -225,7 +225,7 @@ export async function testConnectionAction(id: string) {
     // Mock connection test - in real implementation, this would actually test the connection
     // For now, we'll simulate a connection test with a random success/failure
     setTimeout(async () => {
-      const success = Math.random() > 0.3; // 70% success rate for demo
+      const success =true
       await updateMCPServerStatus({
         id,
         status: success ? 'connected' : 'error',

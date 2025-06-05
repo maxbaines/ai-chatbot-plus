@@ -17,14 +17,14 @@ const components: Partial<Components> = {
   pre: ({ children }) => <>{children}</>,
   ol: ({ node, children, ...props }) => {
     return (
-      <ol className="list-decimal list-outside ml-4 m-0" {...props}>
+      <ol className="list-decimal list-outside pl-4 p-0 m-0 font-bold text-lg" {...props}>
         {children}
       </ol>
     );
   },
   li: ({ node, children, ...props }) => {
     return (
-      <li className="py-1" {...props}>
+      <li className="p-1 m-1" {...props}>
         {children}
       </li>
     );
