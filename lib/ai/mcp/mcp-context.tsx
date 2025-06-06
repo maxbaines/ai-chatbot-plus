@@ -1,16 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { 
   getMCPServersAction, 
-  getEnabledMCPServersAction,
   toggleMCPServerEnabledAction,
   updateMCPServerStatusAction
 } from "@/app/(mcp-client)/actions";
 import type { MCPServer } from "@/lib/db/schema";
 
-// Mock sandbox functions
+// Mock sandbox functions - optimized with minimal delays
 const startSandbox = async ({ id, command, args, env }: {
   id: string;
   command: string;
@@ -20,10 +19,7 @@ const startSandbox = async ({ id, command, args, env }: {
   // Mock implementation - in real scenario this would start a sandbox
   console.log(`Mock: Starting sandbox for ${id} with command: ${command}`, { args, env });
   
-  // Simulate some delay
-  await new Promise(resolve => setTimeout(resolve, 1));
-  
-  // Return a mock URL
+  // Return a mock URL immediately (removed artificial delay)
   return {
     url: `http://localhost:${3000 + Math.floor(Math.random() * 1000)}/mcp`
   };
@@ -33,9 +29,7 @@ const stopSandbox = async (id: string) => {
   // Mock implementation - in real scenario this would stop a sandbox
   console.log(`Mock: Stopping sandbox for ${id}`);
   
-  // Simulate some delay
-  await new Promise(resolve => setTimeout(resolve, 1));
-  
+  // Return immediately (removed artificial delay)
   return { success: true };
 };
 
@@ -71,8 +65,8 @@ interface MCPContextType {
 
 const MCPContext = createContext<MCPContextType | undefined>(undefined);
 
-// Helper function to wait for server readiness
-async function waitForServerReady(url: string, maxAttempts = 20, timeout = 5000) {
+// Helper function to wait for server readiness - optimized with shorter timeouts
+async function waitForServerReady(url: string, maxAttempts = 10, timeout = 2000) {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const controller = new AbortController();
@@ -88,9 +82,8 @@ async function waitForServerReady(url: string, maxAttempts = 20, timeout = 5000)
       console.log(`Server connection failed (attempt ${i + 1}): ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     
-    // Wait before next attempt with progressive backoff
-    const waitTime = Math.min(1000 * (i + 1), 5000); // Start with 1s, increase each time, max 5s
-
+    // Wait before next attempt with shorter backoff
+    const waitTime = Math.min(500 * (i + 1), 2000); // Start with 500ms, max 2s
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
 
@@ -100,14 +93,29 @@ async function waitForServerReady(url: string, maxAttempts = 20, timeout = 5000)
 export function MCPProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [mcpServers, setMcpServers] = useState<MCPServer[]>([]);
-  const [enabledMcpServers, setEnabledMcpServers] = useState<MCPServer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load servers from database when session is available
-  const refreshServers = async () => {
+  // Derive enabled servers from all servers using useMemo for performance
+  const enabledMcpServers = useMemo(() => {
+    return mcpServers.filter(server => server.enabled);
+  }, [mcpServers]);
+
+  // Derive API servers from enabled servers using useMemo
+  const mcpServersForApi = useMemo((): MCPServerApi[] => {
+    return enabledMcpServers
+      .filter(server => server.status === 'connected')
+      .map(server => ({
+        type: 'sse' as const,
+        url: server.type === 'stdio' && server.sandboxUrl ? server.sandboxUrl : server.url,
+        headers: (server.headers as Array<{ key: string; value: string }>) || [],
+        streaming: server.streaming
+      }));
+  }, [enabledMcpServers]);
+
+  // Optimized refresh function - single database call
+  const refreshServers = useCallback(async () => {
     if (!session?.user?.id) {
       setMcpServers([]);
-      setEnabledMcpServers([]);
       setLoading(false);
       return;
     }
@@ -115,36 +123,30 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       
-      // Get all servers
+      // Single database call to get all servers
       const allServersResult = await getMCPServersAction();
       if (allServersResult.success) {
         setMcpServers(allServersResult.servers);
-      }
-
-      // Get enabled servers
-      const enabledServersResult = await getEnabledMCPServersAction();
-      if (enabledServersResult.success) {
-        setEnabledMcpServers(enabledServersResult.servers);
       }
     } catch (error) {
       console.error('Failed to load MCP servers:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id]);
 
   // Load servers on mount and when session changes
   useEffect(() => {
     refreshServers();
-  }, [session?.user?.id]);
+  }, [refreshServers]);
 
-  // Helper to get a server by ID
-  const getServerById = (serverId: string): MCPServer | undefined => {
+  // Helper to get a server by ID - memoized for performance
+  const getServerById = useCallback((serverId: string): MCPServer | undefined => {
     return mcpServers.find(server => server.id === serverId);
-  };
+  }, [mcpServers]);
   
-  // Update server status locally and in database
-  const updateServerStatus = async (serverId: string, status: ServerStatus, errorMessage?: string) => {
+  // Optimized server status update with batched state changes
+  const updateServerStatus = useCallback(async (serverId: string, status: ServerStatus, errorMessage?: string) => {
     // Update local state immediately for responsiveness
     setMcpServers(currentServers => 
       currentServers.map(server => 
@@ -154,72 +156,61 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
       )
     );
 
-    // Update enabled servers if this server is enabled
-    setEnabledMcpServers(currentServers => 
-      currentServers.map(server => 
-        server.id === serverId 
-          ? { ...server, status, errorMessage: errorMessage || null } 
-          : server
-      )
-    );
-
-    // Update in database
+    // Update in database (async, non-blocking)
     try {
       await updateMCPServerStatusAction(serverId, status, errorMessage);
     } catch (error) {
       console.error('Failed to update server status in database:', error);
     }
-  };
+  }, []);
 
-  // Toggle server enabled status
-  const toggleServerEnabled = async (serverId: string, enabled: boolean): Promise<boolean> => {
+  // Optimized toggle function with optimistic updates
+  const toggleServerEnabled = useCallback(async (serverId: string, enabled: boolean): Promise<boolean> => {
+    // Optimistic update - update UI immediately
+    setMcpServers(currentServers => 
+      currentServers.map(server => 
+        server.id === serverId 
+          ? { ...server, enabled } 
+          : server
+      )
+    );
+
     try {
       const result = await toggleMCPServerEnabledAction(serverId, enabled);
       if (result.success) {
-        // Refresh servers to get updated state
-        await refreshServers();
         return true;
+      } else {
+        // Revert optimistic update on failure
+        setMcpServers(currentServers => 
+          currentServers.map(server => 
+            server.id === serverId 
+              ? { ...server, enabled: !enabled } 
+              : server
+          )
+        );
+        return false;
       }
-      return false;
     } catch (error) {
       console.error('Failed to toggle server enabled status:', error);
+      // Revert optimistic update on error
+      setMcpServers(currentServers => 
+        currentServers.map(server => 
+          server.id === serverId 
+            ? { ...server, enabled: !enabled } 
+            : server
+        )
+      );
       return false;
     }
-  };
-
-  // Refresh enabled servers specifically (for when servers are updated)
-  const refreshEnabledServers = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      const enabledServersResult = await getEnabledMCPServersAction();
-      if (enabledServersResult.success) {
-        setEnabledMcpServers(enabledServersResult.servers);
-      }
-    } catch (error) {
-      console.error('Failed to refresh enabled MCP servers:', error);
-    }
-  };
-
-  // Add effect to refresh enabled servers when mcpServers changes
-  useEffect(() => {
-    refreshEnabledServers();
-  }, [mcpServers, session?.user?.id]);
+  }, []);
   
-  // Get active servers formatted for API usage
-  const getActiveServersForApi = (): MCPServerApi[] => {
-    return enabledMcpServers
-      .filter(server => server.status === 'connected')
-      .map(server => ({
-        type: 'sse' as const,
-        url: server.type === 'stdio' && server.sandboxUrl ? server.sandboxUrl : server.url,
-        headers: (server.headers as Array<{ key: string; value: string }>) || [],
-        streaming: server.streaming
-      }));
-  };
+  // Memoized function to get active servers for API
+  const getActiveServersForApi = useCallback((): MCPServerApi[] => {
+    return mcpServersForApi;
+  }, [mcpServersForApi]);
   
-  // Start a server
-  const startServer = async (serverId: string): Promise<boolean> => {
+  // Optimized start server function
+  const startServer = useCallback(async (serverId: string): Promise<boolean> => {
     const server = getServerById(serverId);
     if (!server) return false;
     
@@ -267,8 +258,7 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
           console.log(`Server ${serverId} started successfully, sandbox URL: ${url}`);
           await updateServerStatus(serverId, 'connected');
           
-          // Update the server with sandbox URL (this would need a separate action)
-          // For now, we'll just update local state
+          // Update the server with sandbox URL
           setMcpServers(currentServers => 
             currentServers.map(s => 
               s.id === serverId 
@@ -303,10 +293,10 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
         `Error: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
-  };
+  }, [getServerById, updateServerStatus]);
   
-  // Stop a server
-  const stopServer = async (serverId: string): Promise<boolean> => {
+  // Optimized stop server function
+  const stopServer = useCallback(async (serverId: string): Promise<boolean> => {
     const server = getServerById(serverId);
     if (!server) return false;
     
@@ -328,27 +318,36 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
       console.error(`Error stopping server ${serverId}:`, error);
       return false;
     }
-  };
-  
-  // Calculate mcpServersForApi based on current state
-  const mcpServersForApi = getActiveServersForApi();
+  }, [getServerById, updateServerStatus]);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    mcpServers, 
+    setMcpServers, 
+    enabledMcpServers,
+    mcpServersForApi,
+    startServer,
+    stopServer,
+    updateServerStatus,
+    toggleServerEnabled,
+    refreshServers,
+    getActiveServersForApi,
+    loading
+  }), [
+    mcpServers,
+    enabledMcpServers,
+    mcpServersForApi,
+    startServer,
+    stopServer,
+    updateServerStatus,
+    toggleServerEnabled,
+    refreshServers,
+    getActiveServersForApi,
+    loading
+  ]);
 
   return (
-    <MCPContext.Provider 
-      value={{ 
-        mcpServers, 
-        setMcpServers, 
-        enabledMcpServers,
-        mcpServersForApi,
-        startServer,
-        stopServer,
-        updateServerStatus,
-        toggleServerEnabled,
-        refreshServers,
-        getActiveServersForApi,
-        loading
-      }}
-    >
+    <MCPContext.Provider value={contextValue}>
       {children}
     </MCPContext.Provider>
   );

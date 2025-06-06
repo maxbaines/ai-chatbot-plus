@@ -43,6 +43,7 @@ function PureMessages({
   } = useMessages({
     chatId,
     status,
+    messages,
   });
 
   return (
@@ -50,11 +51,11 @@ function PureMessages({
       ref={messagesContainerRef}
       className="flex flex-col min-w-0 flex-1 overflow-y-auto pt-4 pb-28 relative"
     >
-       {messages.length === 0 && <SuggestedActions
-            append={append}
-            chatId={chatId}
-            selectedVisibilityType={selectedVisibilityType}
-          />}
+      {messages.length === 0 && <SuggestedActions
+        append={append}
+        chatId={chatId}
+        selectedVisibilityType={selectedVisibilityType}
+      />}
 
 
       {messages.map((message, index) => (
@@ -88,7 +89,7 @@ function PureMessages({
         onViewportEnter={onViewportEnter}
       />
       
-     </div>
+    </div>
   );
 }
 

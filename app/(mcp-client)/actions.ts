@@ -10,7 +10,6 @@ import {
   duplicateMCPServer,
   updateMCPServerStatus,
   updateMCPServerEnabled,
-  getEnabledMCPServersByUserId,
 } from '@/lib/db/queries';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -271,24 +270,7 @@ export async function toggleMCPServerEnabledAction(id: string, enabled: boolean)
   }
 }
 
-export async function getEnabledMCPServersAction() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    redirect('/login');
-  }
-
-  try {
-    const servers = await getEnabledMCPServersByUserId({
-      userId: session.user.id,
-    });
-
-    return { success: true, servers };
-  } catch (error) {
-    console.error('Failed to get enabled MCP servers:', error);
-    return { success: false, error: 'Failed to get enabled MCP servers', servers: [] };
-  }
-}
+// Removed getEnabledMCPServersAction - enabled servers are now derived from all servers in the context
 
 export async function updateMCPServerStatusAction(
   id: string,

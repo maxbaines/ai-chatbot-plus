@@ -35,6 +35,7 @@ function PureArtifactMessages({
     onViewportLeave,
     hasSentMessage,
   } = useMessages({
+    messages,
     chatId,
     status,
   });
