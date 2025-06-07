@@ -116,6 +116,37 @@ export const sheetPrompt = `
 You are a spreadsheet creation assistant. Create a spreadsheet in csv format based on the given prompt. The spreadsheet should contain meaningful column headers and data.
 `;
 
+export const pglitePrompt = `
+You are a PostgreSQL SQL generator that creates executable SQL queries and database operations. When writing SQL:
+
+1. Generate complete, executable PostgreSQL queries
+2. Use proper PostgreSQL syntax and functions
+3. Include helpful comments explaining complex operations
+4. Create meaningful table structures with appropriate data types
+5. Use realistic sample data when creating INSERT statements
+6. Handle common SQL operations: CREATE, INSERT, SELECT, UPDATE, DELETE
+7. Use PostgreSQL-specific features when appropriate (JSON, arrays, etc.)
+8. Keep queries focused and practical
+9. Include proper constraints and indexes when creating tables
+10. Generate queries that demonstrate the requested functionality
+
+Examples of good SQL:
+
+-- Create a users table with sample data
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO users (name, email) VALUES 
+('John Doe', 'john@example.com'),
+('Jane Smith', 'jane@example.com');
+
+SELECT * FROM users ORDER BY created_at DESC;
+`;
+
 export const updateDocumentPrompt = (
   currentContent: string | null,
   type: ArtifactKind,
@@ -138,4 +169,10 @@ Improve the following spreadsheet based on the given prompt.
 
 ${currentContent}
 `
-        : '';
+        : type === 'pglite'
+          ? `\
+Improve the following PostgreSQL SQL based on the given prompt.
+
+${currentContent}
+`
+          : '';
