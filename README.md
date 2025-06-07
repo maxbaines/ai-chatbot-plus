@@ -34,6 +34,11 @@
   - External tool and data source connections
   - Plugin architecture
 
+- **Artifacts**
+
+  - Added pglite Artifact for postgres sql, in the browser similar to pyodide
+  - Better writing document with wysiwyg and / command
+
 - **Wide Mode**
 
   - Prose-optimized layout for long-form content
@@ -83,6 +88,7 @@ Supports multiple AI providers through the AI SDK:
 - **Google** - Gemini Pro, Gemini Pro Vision
 - **Groq** - Llama, Mixtral, Gemma models
 - **Mistral** - Mistral Large, Medium, Small
+- **Vercel** - V0 model
 - **TogetherAI** - Open-source models
 
 ## Deploy Your Own
