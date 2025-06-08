@@ -177,15 +177,11 @@ export async function POST(request: Request) {
           system: await systemPrompt({ selectedChatModel, requestHints, promptId: chat?.promptId }),
           messages,
           maxSteps: 5,
-          /*experimental_activeTools:
-            selectedChatModel === 'xai-chat-model-reasoning'||   selectedChatModel === 'openai-chat-model-search'
-              ? []
-              : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                ],*/
+          ...(selectedChatModel === 'xai-chat-model-reasoning' || selectedChatModel === 'openai-chat-model-search'
+            ? {
+                experimental_activeTools: []
+              }
+            : {}),
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: generateUUID,
           tools: {
