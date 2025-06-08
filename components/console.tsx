@@ -45,10 +45,10 @@ function ConsoleContentRenderer({ content }: { content: ConsoleOutputContent }) 
       minWidth: minColumnWidth,
       resizable: true,
       sortable: true,
-      cellClass: cn('border-t dark:bg-zinc-950 dark:text-zinc-50', {
+      cellClass: cn('border-t bg-card text-card-foreground', {
         'border-l': index !== 0,
       }),
-      headerCellClass: cn('border-t dark:bg-zinc-900 dark:text-zinc-50', {
+      headerCellClass: cn('border-t bg-muted text-muted-foreground', {
         'border-l': index !== 0,
       }),
     }));
@@ -72,7 +72,7 @@ function ConsoleContentRenderer({ content }: { content: ConsoleOutputContent }) 
       <div className="w-full overflow-auto">
         <DataGrid
           className={cn(
-            theme === 'dark' ? 'rdg-dark' : 'rdg-light',
+            theme?.includes('-dark') ? 'rdg-dark' : 'rdg-light',
             'w-full'
           )}
           columns={columns}
@@ -278,15 +278,15 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
 
       <div
         className={cn(
-          'fixed flex flex-col bottom-0 dark:bg-zinc-900 bg-zinc-50 w-full border-t z-40 overflow-y-scroll overflow-x-hidden dark:border-zinc-700 border-zinc-200',
+          'fixed flex flex-col bottom-0 bg-background w-full border-t z-40 overflow-y-scroll overflow-x-hidden border-border',
           {
             'select-none': isResizing,
           },
         )}
         style={{ height }}
       >
-        <div className="flex flex-row justify-between items-center w-full h-fit border-b dark:border-zinc-700 border-zinc-200 px-2 py-1 sticky top-0 z-50 bg-muted">
-          <div className="text-sm pl-2 dark:text-zinc-50 text-zinc-800 flex flex-row gap-3 items-center">
+        <div className="flex flex-row justify-between items-center w-full h-fit border-b border-border px-2 py-1 sticky top-0 z-50 bg-muted">
+          <div className="text-sm pl-2 text-foreground flex flex-row gap-3 items-center">
             <div className="text-muted-foreground">
               <TerminalWindowIcon />
             </div>
@@ -318,7 +318,7 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
           {consoleOutputs.map((consoleOutput, index) => (
             <div
               key={consoleOutput.id}
-              className="px-4 py-2 flex flex-row text-sm border-b dark:border-zinc-700 border-zinc-200 dark:bg-zinc-900 bg-zinc-50 font-mono"
+              className="px-4 py-2 flex flex-row text-sm border-b border-border bg-background font-mono"
             >
               <div
                 className={cn('w-12 shrink-0', {
@@ -351,7 +351,7 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
                   </div>
                 </div>
               ) : (
-                <div className="dark:text-zinc-50 text-zinc-900 w-full flex flex-col gap-2 overflow-x-auto">
+                <div className="text-foreground w-full flex flex-col gap-2 overflow-x-auto">
                   <ConsoleOutputContent 
                     contents={consoleOutput.contents} 
                     activeTab={activeTabs[consoleOutput.id] || (() => {

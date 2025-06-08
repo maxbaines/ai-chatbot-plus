@@ -283,7 +283,7 @@ function PureArtifact({
 
           {!isMobile && (
             <motion.div
-              className="relative w-[400px] bg-sidebar dark:bg-background h-dvh shrink-0"
+              className="relative w-[400px] bg-sidebar h-dvh shrink-0"
               initial={{ opacity: 0, x: 10, scale: 1 }}
               animate={{
                 opacity: 1,
@@ -306,7 +306,7 @@ function PureArtifact({
               <AnimatePresence>
                 {!isCurrentVersion && (
                   <motion.div
-                    className="left-0 absolute h-dvh w-[400px] top-0 bg-zinc-900/50 z-50"
+                    className="left-0 absolute h-dvh w-[400px] top-0 bg-background/50 z-50"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -338,7 +338,7 @@ function PureArtifact({
                     setAttachments={setAttachments}
                     messages={messages}
                     append={append}
-                    className="bg-background dark:bg-sidebar"
+                    className="bg-background"
                     setMessages={setMessages}
                     selectedVisibilityType={selectedVisibilityType}
                   />
@@ -348,7 +348,7 @@ function PureArtifact({
           )}
 
           <motion.div
-            className="fixed dark:bg-sidebar bg-background h-dvh flex flex-col overflow-y-scroll md:border-l dark:border-zinc-700 border-zinc-200"
+            className="fixed bg-background h-dvh flex flex-col overflow-y-scroll md:border-l border-border"
             initial={
               isMobile
                 ? {
@@ -452,7 +452,7 @@ function PureArtifact({
               />
             </div>
 
-            <div className="dark:bg-sidebar bg-background h-full overflow-y-scroll !max-w-full items-center">
+            <div className="bg-background h-full overflow-y-scroll !max-w-full items-center">
               <artifactDefinition.content
                 title={artifact.title}
                 content={

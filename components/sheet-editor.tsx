@@ -53,8 +53,8 @@ const PureSpreadsheetEditor = ({
       frozen: true,
       width: 50,
       renderCell: ({ rowIdx }: { rowIdx: number }) => rowIdx + 1,
-      cellClass: 'border-t border-r dark:bg-zinc-950 dark:text-zinc-50',
-      headerCellClass: 'border-t border-r dark:bg-zinc-900 dark:text-zinc-50',
+      cellClass: 'border-t border-r bg-card text-card-foreground',
+      headerCellClass: 'border-t border-r bg-muted text-muted-foreground',
     };
 
     const dataColumns = Array.from({ length: MIN_COLS }, (_, i) => ({
@@ -62,10 +62,10 @@ const PureSpreadsheetEditor = ({
       name: String.fromCharCode(65 + i),
       renderEditCell: textEditor,
       width: 120,
-      cellClass: cn(`border-t dark:bg-zinc-950 dark:text-zinc-50`, {
+      cellClass: cn(`border-t bg-card text-card-foreground`, {
         'border-l': i !== 0,
       }),
-      headerCellClass: cn(`border-t dark:bg-zinc-900 dark:text-zinc-50`, {
+      headerCellClass: cn(`border-t bg-muted text-muted-foreground`, {
         'border-l': i !== 0,
       }),
     }));
@@ -111,7 +111,7 @@ const PureSpreadsheetEditor = ({
 
   return (
     <DataGrid
-      className={theme === 'dark' ? 'rdg-dark' : 'rdg-light'}
+      className={theme?.includes('-dark') ? 'rdg-dark' : 'rdg-light'}
       columns={columns}
       rows={localRows}
       enableVirtualization

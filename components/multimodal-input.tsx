@@ -365,12 +365,12 @@ function PureMultimodalInput({
       <div
         className={cx(
           'relative flex flex-col gap-2 rounded-xl',
-          'bg-white/20 dark:bg-neutral-900/20',
+          'bg-background/20',
           'backdrop-blur-xl',
-          'border border-white/20 dark:border-white/10',
-          'shadow-[0_0_1px_1px_rgba(0,0,0,0.05)] dark:shadow-[0_0_1px_1px_rgba(255,255,255,0.05)]',
-          'focus-within:border-white/30 dark:focus-within:border-white/20',
-          'focus-within:shadow-[0_0_15px_2px_rgba(0,0,0,0.1)] dark:focus-within:shadow-[0_0_15px_2px_rgba(255,255,255,0.1)]',
+          'border border-border/20',
+          'shadow-sm',
+          'focus-within:border-border/30',
+          'focus-within:shadow-md',
           'transition-all duration-200'
         )}
       >
@@ -384,8 +384,8 @@ function PureMultimodalInput({
             className={cx(
               'min-h-[24px] overflow-hidden resize-none rounded-xl !text-base pb-10',
               '!border-none !ring-0 !ring-offset-0 focus-visible:!ring-0 focus-visible:!ring-offset-0',
-              '!bg-transparent placeholder:text-neutral-500 dark:placeholder:text-neutral-400',
-              'text-neutral-800 dark:text-neutral-100',
+              '!bg-transparent placeholder:text-muted-foreground',
+              'text-foreground',
               className,
             )}
             rows={2}
@@ -435,7 +435,7 @@ function PureMultimodalInput({
             <div
               className={cx(
                 'absolute inset-0 pointer-events-none',
-                'text-neutral-400 dark:text-neutral-500',
+                'text-muted-foreground',
                 'whitespace-pre-wrap break-words',
                 'px-3 py-2 rounded-xl',
                 'overflow-hidden'
@@ -497,8 +497,8 @@ function PureAttachmentsButton({
       data-testid="attachments-button"
       className={cx(
         'h-8 w-8 rounded-full',
-        'text-neutral-400 dark:text-neutral-500',
-        'hover:text-neutral-900 dark:hover:text-neutral-100',
+        'text-muted-foreground',
+        'hover:text-foreground',
         'transition-all duration-200',
       )}
       onClick={(event) => {
@@ -529,8 +529,8 @@ function PureStopButton({
       className={cx(
         'h-8 w-8 rounded-full',
         'bg-transparent',
-        'text-neutral-400 dark:text-neutral-500',
-        'hover:text-neutral-900 dark:hover:text-neutral-100',
+        'text-muted-foreground',
+        'hover:text-foreground',
         'border-transparent',
         'transition-all duration-200',
         'backdrop-blur-sm'
@@ -565,8 +565,8 @@ function PureSendButton({
       className={cx(
         'h-8 w-8 rounded-full',
         'bg-transparent',
-        'text-neutral-400 dark:text-neutral-500',
-        'hover:text-neutral-900 dark:hover:text-neutral-100',
+        'text-muted-foreground',
+        'hover:text-foreground',
         'border-transparent',
         'transition-all duration-200',
         'backdrop-blur-sm'

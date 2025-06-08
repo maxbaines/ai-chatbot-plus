@@ -26,6 +26,7 @@ import { toast } from './toast';
 import { LoaderIcon, MessageIcon, FileIcon } from './icons';
 import { guestRegex } from '@/lib/constants';
 import { useChatLayout } from '@/hooks/use-chat-layout';
+import { ThemeToggle } from './theme-toggle';
 
 export function SidebarUserNav({ user }: { user: User }) {
   const router = useRouter();
@@ -113,32 +114,20 @@ export function SidebarUserNav({ user }: { user: User }) {
 
             {/* Theme & Layout Toggles */}
             <div className="p-2 space-y-2">
-            <div className="text-xs text-muted-foreground font-medium">Layout</div>
-              <Tabs value={layout} onValueChange={(value) => setLayout(value as 'bubble' | 'wide')}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="bubble" className="text-xs">
-                    <MessageIcon size={14} />
-                  </TabsTrigger>
-                  <TabsTrigger value="wide" className="text-xs">
-                    <FileIcon size={14} />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <div className="text-xs text-muted-foreground font-medium">Theme</div>
-              <Tabs value={theme} onValueChange={setTheme}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="light" className="text-xs">
-                    <Sun className="size-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="dark" className="text-xs">
-                    <Moon className="size-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="system" className="text-xs">
-                    <UserIcon className="size-4" />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-           
+              <div className="text-xs text-muted-foreground font-medium">Style</div>
+              <div className="flex items-center gap-2">
+                <Tabs value={layout} onValueChange={(value) => setLayout(value as 'bubble' | 'wide')} className="flex-1">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="bubble" className="text-xs">
+                      <MessageIcon size={14} />
+                    </TabsTrigger>
+                    <TabsTrigger value="wide" className="text-xs">
+                      <FileIcon size={14} />
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <ThemeToggle/>
+              </div>
             </div>
 
             <DropdownMenuSeparator />

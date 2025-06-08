@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
-import { ChevronDown, PlusCircle, Search, Settings, History } from 'lucide-react';
+import { ChevronDown, PlusCircle, Search, Settings, History, MessageCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -107,16 +107,10 @@ function PurePromptHeader({
           menuItems={[
             {
               type: 'link',
-              icon: Settings,
-              label: 'Settings',
-              href: '/settings'
+              icon: MessageCircle,
+              label: 'New Chat',
+              href: '/'
             },
-            {
-              type: 'link',
-              icon: History,
-              label: 'History',
-              href: '/reporting'
-            }
           ]}
         />
       </div>

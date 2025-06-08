@@ -64,7 +64,7 @@ export const MessageContent = ({
                 key={key} 
                 className={cn('flex flex-row items-start relative', {
                   // Bubble layout user message styling
-                  'bg-sidebar text-primary px-3 py-2 rounded-xl': 
+                  'bg-sidebar  px-3 py-2 rounded-xl': 
                     message.role === 'user' && layout === 'bubble',
                   // Wide layout user message styling - no background since it's handled at parent level
                   'gap-2': 

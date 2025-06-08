@@ -24,7 +24,7 @@ export const BubbleMessage = ({
       'flex gap-4 w-full',
       {
         'w-full': mode === 'edit',
-        'ml-auto max-w-2xl w-fit pb-6 pt-2': message.role === 'user' && mode !== 'edit',
+        'ml-auto max-w-2xl w-fit pb-12 pt-12': message.role === 'user' && mode !== 'edit',
       }
     )}>
       {message.role === 'assistant' && (

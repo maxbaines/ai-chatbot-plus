@@ -112,8 +112,20 @@ export default async function RootLayout({
       <body className="antialiased">
         <TooltipProvider>
           <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
+            attribute="data-theme"
+            defaultTheme="default-dark"
+            themes={[
+              "default-light",
+              "default-dark", 
+              "t3chat-light",
+              "t3chat-dark",
+              "claude-light", 
+              "claude-dark",
+              "mocha-light",
+              "mocha-dark",
+              "tangerine-light",
+              "tangerine-dark",
+            ]}
             enableSystem
             disableTransitionOnChange
           >

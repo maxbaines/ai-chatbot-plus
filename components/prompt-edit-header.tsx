@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, PlusCircle, Settings, History } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Settings, History, MessageCircle, Quote } from 'lucide-react';
 import { memo } from 'react';
 import type { Session } from 'next-auth';
 
@@ -72,16 +72,16 @@ function PurePromptEditHeader({
         menuItems={[
           {
             type: 'link',
-            icon: Settings,
-            label: 'Settings',
-            href: '/settings'
+            icon: Quote,
+            label: 'Prompts',
+            href: '/prompt'
           },
           {
             type: 'link',
-            icon: History,
-            label: 'History',
-            href: '/reporting'
-          }
+            icon: MessageCircle,
+            label: 'New Chat',
+            href: '/'
+          },
         ]}
       />
     </header>

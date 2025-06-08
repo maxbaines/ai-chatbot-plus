@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronDown, Moon, Sun, User, Search } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { ChevronDown, User, Search } from 'lucide-react';
 import type { Session } from 'next-auth';
 import type { LucideIcon } from 'lucide-react';
 
@@ -16,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ThemeToggle } from './theme-toggle';
 
 export interface MenuItem {
   type: 'link' | 'action' | 'separator' | 'custom';
@@ -48,8 +47,6 @@ export function UserMenu({
   align = "end",
   buttonClassName = "h-9 min-h-9 max-h-9 px-2",
 }: UserMenuProps) {
-  const { theme, setTheme } = useTheme();
-
   const triggerCommandPalette = () => {
     const event = new KeyboardEvent('keydown', {
       key: 'k',
@@ -94,49 +91,18 @@ export function UserMenu({
             <p className="text-sm font-medium leading-none">
               {session.user?.name}
             </p>
-            <p className="text-sm leading-none text-muted-foreground">
-              {session.user?.email}
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm leading-none text-muted-foreground truncate min-w-0 flex-1">
+                {session.user?.email}
+              </p>
+              {showThemeSelector && <ThemeToggle />}
+            </div>
           </div>
         </DropdownMenuLabel>
-        
-        {/* Theme Selector Section */}
-        {showThemeSelector && (
-          <>
-            <DropdownMenuSeparator />
-            <div className="p-2">
-              <Tabs value={theme} onValueChange={setTheme}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="light" className="text-xs">
-                    <Sun className="size-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="dark" className="text-xs">
-                    <Moon className="size-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="system" className="text-xs">
-                    <User className="size-4" />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </>
-        )}
 
         {/* Menu Items Section */}
         {(showCommandPalette || menuItems.length > 0) && <DropdownMenuSeparator />}
         
-        {/* Command Palette */}
-        {showCommandPalette && (
-          <DropdownMenuItem 
-            onClick={triggerCommandPalette}
-            className="flex items-center gap-2"
-          >
-            <Search className="h-4 w-4" />
-            <span>Command Palette</span>
-            <span className="ml-auto text-xs text-muted-foreground">⌘K</span>
-          </DropdownMenuItem>
-        )}
-
         {/* Custom Menu Items */}
         {menuItems.map((item, index) => {
           if (item.type === 'separator') {
@@ -179,6 +145,20 @@ export function UserMenu({
 
           return null;
         })}
+        {/* Menu Items Section */}
+        {(showCommandPalette || menuItems.length > 0) && <DropdownMenuSeparator />}
+        
+        {/* Command Palette */}
+        {showCommandPalette && (
+          <DropdownMenuItem 
+            onClick={triggerCommandPalette}
+            className="flex items-center gap-2"
+          >
+            <Search className="h-4 w-4" />
+            <span>Command Palette</span>
+            <span className="ml-auto text-xs text-muted-foreground">⌘K</span>
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
