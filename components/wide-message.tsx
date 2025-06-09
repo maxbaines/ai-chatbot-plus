@@ -29,7 +29,7 @@ export const WideMessage = ({
         {/* Center the content container */}
         <div className="w-full max-w-5xl">
           {message.role === 'assistant' && (
-            <div className="mb-3 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2 group cursor-pointer">
               <div className="size-6 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
                 <div className="translate-y-px">
                   <SparklesIcon size={14} />
@@ -37,28 +37,32 @@ export const WideMessage = ({
               </div>
               <span className="font-bold">Assistant</span>
               {!isReadonly && (
-                <MessageActions
-                  chatId={chatId}
-                  message={message}
-                  vote={vote}
-                  isLoading={isLoading}
-                />
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <MessageActions
+                    chatId={chatId}
+                    message={message}
+                    vote={vote}
+                    isLoading={isLoading}
+                  />
+                </div>
               )}
             </div>
           )}
 
           {message.role === 'user' && !isReadonly && (
-            <div className="mb-3 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2 group cursor-pointer">
               <div className="size-6 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
                 <div className="translate-y-px">
                   <UserIcon size={14}/>
                 </div>
               </div>
               <span className="font-bold">User</span>
-              <UserActions
-                message={message}
-                setMode={setMode}
-              />
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <UserActions
+                  message={message}
+                  setMode={setMode}
+                />
+              </div>
             </div>
           )}
 
@@ -73,7 +77,7 @@ export const WideMessage = ({
             </div>
           )}
 
-          <div className="prose dark:prose-invert prose-zinc">
+          <div className="prose">
             <MessageContent
               chatId={chatId}
               message={message}

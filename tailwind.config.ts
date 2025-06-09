@@ -76,7 +76,63 @@ const config: Config = {
       typography: {
         DEFAULT: {
           css: {
-            color: 'hsl(var(--foreground))',
+            '--tw-prose-body': 'hsl(var(--foreground))',
+            '--tw-prose-headings': 'hsl(var(--foreground))',
+            '--tw-prose-lead': 'hsl(var(--muted-foreground))',
+            '--tw-prose-links': 'hsl(var(--primary))',
+            '--tw-prose-bold': 'hsl(var(--foreground))',
+            '--tw-prose-counters': 'hsl(var(--muted-foreground))',
+            '--tw-prose-bullets': 'hsl(var(--muted-foreground))',
+            '--tw-prose-hr': 'hsl(var(--border))',
+            '--tw-prose-quotes': 'hsl(var(--foreground))',
+            '--tw-prose-quote-borders': 'hsl(var(--border))',
+            '--tw-prose-captions': 'hsl(var(--muted-foreground))',
+            '--tw-prose-code': 'hsl(var(--foreground))',
+            '--tw-prose-pre-code': 'hsl(var(--foreground))',
+            '--tw-prose-pre-bg': 'hsl(var(--muted))',
+            '--tw-prose-th-borders': 'hsl(var(--border))',
+            '--tw-prose-td-borders': 'hsl(var(--border))',
+            color: 'var(--tw-prose-body)',
+            maxWidth: '65ch',
+            h1: {
+              color: 'var(--tw-prose-headings)',
+            },
+            h2: {
+              color: 'var(--tw-prose-headings)',
+            },
+            h3: {
+              color: 'var(--tw-prose-headings)',
+            },
+            h4: {
+              color: 'var(--tw-prose-headings)',
+            },
+            h5: {
+              color: 'var(--tw-prose-headings)',
+            },
+            h6: {
+              color: 'var(--tw-prose-headings)',
+            },
+            a: {
+              color: 'var(--tw-prose-links)',
+              textDecoration: 'underline',
+              fontWeight: '500',
+            },
+            strong: {
+              color: 'var(--tw-prose-bold)',
+              fontWeight: '600',
+            },
+            code: {
+              color: 'var(--tw-prose-code)',
+              fontWeight: '600',
+            },
+            pre: {
+              color: 'var(--tw-prose-pre-code)',
+              backgroundColor: 'var(--tw-prose-pre-bg)',
+            },
+            blockquote: {
+              color: 'var(--tw-prose-quotes)',
+              borderLeftColor: 'var(--tw-prose-quote-borders)',
+            },
           },
         },
       },
